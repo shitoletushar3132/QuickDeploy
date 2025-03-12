@@ -7,6 +7,7 @@ import { getAllFiles } from "./files";
 import dotenv from "dotenv";
 import { uploadFile } from "./awsConfig";
 import { createClient } from "redis";
+import { cleanUpFile } from "./removefiles";
 
 dotenv.config();
 
@@ -29,6 +30,9 @@ initializeRedis().then(({ publisher, subscriber }) => {
     const repoUrl = req.body.repoUrl;
     const name = repoUrl.split("/").pop().split(".")[0];
     const id = generateRandomId(name);
+
+    const repoPath = path.join(__dirname, `output/${id}`);
+
     try {
       await publisher.hSet("status", id, "Cloning");
       await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
@@ -47,6 +51,9 @@ initializeRedis().then(({ publisher, subscriber }) => {
     } catch (error) {
       await publisher.hSet("status", id, "failed");
       res.status(500).send("server error");
+    } finally {
+      cleanUpFile(repoPath);
+      console.log(`cleaned up: ${repoPath}`);
     }
   });
 

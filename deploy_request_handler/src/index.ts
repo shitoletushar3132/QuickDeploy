@@ -44,6 +44,17 @@ app.get("/*", async (req, res) => {
       : "application/javascript";
 
     res.set("Content-Type", type);
+
+    // Set cache control headers
+    res.set("Cache-Control", "public, max-age=86400, immutable"); // Cache for 24 hours
+
+    // Optionally, add ETag and Last-Modified headers for cache validation
+    const etag = contents.ETag;
+    //@ts-ignore
+    const lastModified = new Date(contents.LastModified).toUTCString();
+    res.set("ETag", etag);
+    res.set("Last-Modified", lastModified);
+
     res.send(contents.Body);
   } catch (error) {
     console.error("S3 Fetch Error:", error);

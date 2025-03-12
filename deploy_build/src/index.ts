@@ -1,6 +1,8 @@
 import { commandOptions, createClient } from "redis";
 import { copyFinalDist, downloadS3Folder } from "./aws";
 import { buildProject } from "./utils";
+import { cleanUpFile } from "./removefiles";
+import path from "path";
 
 const subscriber = createClient();
 subscriber.connect();
@@ -16,7 +18,10 @@ async function main() {
       0
     );
 
+    let buildPath;
+
     if (response) {
+      buildPath = path.join(__dirname, "/output", response.element);
       try {
         console.log("Starting S3 Download...");
         await downloadS3Folder(`output/${response.element}`);
@@ -33,6 +38,8 @@ async function main() {
       } catch (error) {
         publisher.hSet("status", response.element, "failed");
         console.error("Error in the process:", error);
+      } finally {
+        cleanUpFile(buildPath);
       }
     }
   }
