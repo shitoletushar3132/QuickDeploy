@@ -32,12 +32,13 @@ initializeRedis().then(({ publisher, subscriber }) => {
     const id = generateRandomId(name);
 
     const repoPath = path.join(__dirname, `output/${id}`);
+    res.json({ id });
 
     try {
-      await publisher.hSet("status", id, "Cloning");
+      await publisher.hSet("status", id, "cloning");
       await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
 
-      await publisher.hSet("status", id, "Uploading");
+      await publisher.hSet("status", id, "uploading");
       const files = getAllFiles(path.join(__dirname, `output/${id}`));
 
       await Promise.all(
@@ -46,8 +47,6 @@ initializeRedis().then(({ publisher, subscriber }) => {
 
       await publisher.lPush("build-queue", id);
       await publisher.hSet("status", id, "uploaded");
-
-      res.json({ id });
     } catch (error) {
       await publisher.hSet("status", id, "failed");
       res.status(500).send("server error");
@@ -58,9 +57,13 @@ initializeRedis().then(({ publisher, subscriber }) => {
   });
 
   app.get("/status/:id", async (req, res) => {
-    const id = req.params.id as string;
-    const response = await subscriber.hGet("status", id);
-    res.json({ status: response || "Unknown" });
+    try {
+      const id = req.params.id as string;
+      const response = await subscriber.hGet("status", id);
+      res.json({ status: response || "Unknown" });
+    } catch {
+      res.json({ message: "error on server" });
+    }
   });
 
   app.listen(3000, () => {

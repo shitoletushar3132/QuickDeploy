@@ -28,13 +28,14 @@ async function main() {
         console.log("Downloaded Successfully");
 
         console.log("Starting Build Process...");
+        publisher.hSet("status", response.element, "building");
         await buildProject(response.element);
         console.log("Build Successfully");
 
         console.log("Copying Final Distribution...");
         copyFinalDist(response.element);
         console.log("Final Distribution Copied Successfully");
-        publisher.hSet("status", response.element, "Deployed");
+        publisher.hSet("status", response.element, "deployed");
       } catch (error) {
         publisher.hSet("status", response.element, "failed");
         console.error("Error in the process:", error);
